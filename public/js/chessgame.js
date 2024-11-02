@@ -2,22 +2,92 @@ const socket = io();
 
 const chess = new Chess();
 
-const boardElement = document.getElementById(".chessboard");
+const boardElement = document.querySelector(".chessboard"); // Use querySelector for class
 
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
 
-const renderBoard = ()=>{
+const renderBoard = () => {
     const board = chess.board();
     boardElement.innerHTML = "";
-    board.forEach((row,rowindex)=>{
-        row.forEach((square,squareindex)=>{
-           const square =  document.createElement("div");
-        })
-    })
+    board.forEach((row, rowindex) => {
+        row.forEach((square, squareindex) => {
+            const squareElement = document.createElement("div");
+            squareElement.classList.add("square",
+                (rowindex + squareindex) % 2 == 0 ? "light" : "dark"
+            );
+            squareElement.dataset.row = rowindex;
+            squareElement.dataset.col = squareindex;
+
+            if (square) {
+                const pieceElement = document.createElement("div");
+                pieceElement.classList.add("piece", square.color === 'w' ? "white" : "black"); // Use lowercase for color
+                pieceElement.innerText = getPieceUnicode(square); // You can set this to the piece symbol if needed
+                pieceElement.draggable = playerRole === square.color;
+                
+                pieceElement.addEventListener("dragstart", (e) => { // Add `e` as parameter
+                    if (pieceElement.draggable) {
+                        draggedPiece = pieceElement;
+                        sourceSquare = { row: rowindex, col: squareindex };
+                        e.dataTransfer.setData("text/plain", "");
+                    }
+                });
+
+                pieceElement.addEventListener("dragend", (e) => { // Add `e` as parameter
+                    draggedPiece = null;
+                    sourceSquare = null;
+                });
+
+                squareElement.appendChild(pieceElement);
+            }
+
+            squareElement.addEventListener("dragover", function(e) {
+                e.preventDefault();
+            });
+
+            squareElement.addEventListener("drop", function(e) {
+                e.preventDefault();
+                if (draggedPiece) {
+                    const targetSquare = {
+                        row: parseInt(squareElement.dataset.row),
+                        col: parseInt(squareElement.dataset.col)
+                    };
+
+                    handleMove(sourceSquare, targetSquare);
+                }
+            });
+
+            boardElement.appendChild(squareElement);
+        });
+    });
 };
 
-const handleMove=()=>{};
+const handleMove = () => {};
 
-const getPieceUnicode = ()=>{};
+
+    const getPieceUnicode = (piece) => {
+        const unicodePieces = {
+            
+            'p': '♟',
+            'r': '♜',
+            'n': '♞',
+            'b': '♝',
+            'q': '♛',
+            'k': '♚',
+            'P': '♙',
+            'R': '♖',
+            'N': '♘',
+            'B': '♗',
+            'Q': '♕',
+            'K': '♔'
+           
+        };
+        return unicodePieces[piece.type] || "";
+    };
+
+
+
+
+// Initialize the board
+renderBoard();
