@@ -1,3 +1,5 @@
+// const { render } = require("ejs");
+
 const socket = io();
 
 const chess = new Chess();
@@ -63,30 +65,53 @@ const renderBoard = () => {
     });
 };
 
-const handleMove = () => {};
-
-
-    const getPieceUnicode = (piece) => {
-        const unicodePieces = {
-            
-            'p': '♟',
-            'r': '♜',
-            'n': '♞',
-            'b': '♝',
-            'q': '♛',
-            'k': '♚',
-            'P': '♙',
-            'R': '♖',
-            'N': '♘',
-            'B': '♗',
-            'Q': '♕',
-            'K': '♔'
-           
-        };
-        return unicodePieces[piece.type] || "";
+const handleMove = (source,target) => {
+    const move = {
+        from:`${String.fromCharCode(97+source.col)}${8 - source.row}` ,
+        to:`${String.fromCharCode(97+target.col)}${8 - target.row}` ,
+        promotion: 'q'
     };
+    socket.emit("move",move);
 
+};
 
+const getPieceUnicode = (piece) => {
+    const unicodePieces = {
+        'p': '♟', // Black Pawn
+        'r': '♜', // Black Rook
+        'n': '♞', // Black Knight
+        'b': '♝', // Black Bishop
+        'q': '♛', // Black Queen
+        'k': '♚', // Black King
+        'P': '♙', // White Pawn
+        'R': '♖', // White Rook
+        'N': '♘', // White Knight
+        'B': '♗', // White Bishop
+        'Q': '♕', // White Queen
+        'K': '♔'  // White King
+    };
+    return unicodePieces[piece.type] || "";
+};
+
+socket.on("playerRole",function(role){
+    playerRole = role;
+    renderBoard();
+});
+
+socket.on("spectatorRole",function(){
+    playerRole = null;
+    renderBoard();
+});
+
+socket.on("boardState",function(fen){
+    chess.load(fen);
+    renderBoard();
+});
+
+socket.on("move",function(move){
+    chess.move(fen);
+    renderBoard();
+});
 
 
 // Initialize the board
