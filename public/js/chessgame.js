@@ -1,132 +1,146 @@
 const socket = io();
 const chess = new Chess();
-
 const boardElement = document.querySelector(".chessboard");
 
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
 
+
+const pieceImages = {
+    black:{
+        p: "images/ChessIcons/black/pawn.png",
+        n: "images/ChessIcons/black/knight.png",
+        b: "images/ChessIcons/black/bishop.png",
+        r: "images/ChessIcons/black/rook.png",
+        q: "images/ChessIcons/black/queen.png",
+        k: "images/ChessIcons/black/king.png"
+    },
+    white:{
+        p: "images/ChessIcons/white/pawn.png",
+        n: "images/ChessIcons/white/knight.png",
+        b: "images/ChessIcons/white/bishop.png",
+        r: "images/ChessIcons/white/rook.png",
+        q: "images/ChessIcons/white/queen.png",
+        k: "images/ChessIcons/white/king.png",
+    },
+
+   
+  
+};
+
 const renderBoard = () => {
-    const board = chess.board();
-    boardElement.innerHTML = "";
-    board.forEach((row, rowIndex) => {
-        row.forEach((square, squareIndex) => {
-            const squareElement = document.createElement("div");
-            squareElement.classList.add("square",
-                (rowIndex + squareIndex) % 2 === 0 ? "light" : "dark"
-            );
-            squareElement.dataset.row = rowIndex;
-            squareElement.dataset.col = squareIndex;
+  const board = chess.board();
+  boardElement.innerHTML = "";
 
-            if (square) {
-                const pieceElement = document.createElement("div");
-                pieceElement.classList.add("piece", square.color === 'w' ? "white" : "black");
-                pieceElement.innerText = getPieceUnicode(square);
-                pieceElement.draggable = playerRole === square.color;
+  board.forEach((row, rowIndex) => {
+    row.forEach((square, squareIndex) => {
+        const squareElement = document.createElement("div")
 
-                // Drag Start Event
-                pieceElement.addEventListener("dragstart", (e) => {
-                    if (pieceElement.draggable) {
-                        draggedPiece = pieceElement;
-                        sourceSquare = { row: rowIndex, col: squareIndex };
-                        e.dataTransfer.setData("text/plain", "");
-                    }
-                });
+        squareElement.classList.add("square", (rowIndex + squareIndex) % 2 == 0 ? "light" : "dark" )
+    
+        squareElement.dataset.row = rowIndex
+        squareElement.dataset.col = squareIndex
+    
+        if(square){
+            console.log(square.type);
+            const pieceElement = document.createElement("div")
+    
+            pieceElement.classList.add("piece","relative", square.color == "w" ? "white" : "black")
+    
+            const pieceImg = document.createElement("img"); 
 
-                // Drag End Event
-                pieceElement.addEventListener("dragend", () => {
-                    draggedPiece = null;
-                    sourceSquare = null;
-                });
+            pieceImg.setAttribute("src", square.color === "w" ? pieceImages.white[square.type] : pieceImages.black[square.type])
 
-                squareElement.appendChild(pieceElement);
+            pieceImg.alt = `${square.color} ${square.type}`;
+
+            pieceImg.draggable = playerRole === square.color;
+            pieceElement.draggable = playerRole === square.color;
+
+            pieceElement.appendChild(pieceImg);
+
+            pieceElement.addEventListener("dragstart",(e) => {
+                if(pieceElement.draggable){
+                    draggedPiece = pieceElement;
+                    sourceSquare = {row: rowIndex , col: squareIndex}
+
+                    e.dataTransfer.setData("text/plain","")
+                }
+            })
+
+            pieceElement.addEventListener("dragend",(e) => {
+                draggedPiece = null;
+                sourceSquare = null;
+            })
+    
+            squareElement.appendChild(pieceElement);
+        }
+    
+        squareElement.addEventListener("dragover",(e) => {
+            e.preventDefault();
+        })
+
+        squareElement.addEventListener("drop",(e) => {
+            e.preventDefault();
+
+            if(draggedPiece){
+                const targetSquare = {
+                    row: parseInt(squareElement.dataset.row),
+                    col: parseInt(squareElement.dataset.col)
+                }
+                handleMove(sourceSquare,targetSquare);
             }
 
-            // Allow dropping
-            squareElement.addEventListener("dragover", (e) => {
-                e.preventDefault();
-            });
+        })
 
-            // Handle Drop Event
-            squareElement.addEventListener("drop", (e) => {
-                e.preventDefault();
-                if (draggedPiece) {
-                    const targetSquare = {
-                        row: parseInt(squareElement.dataset.row),
-                        col: parseInt(squareElement.dataset.col)
-                    };
-
-                    // Handle move only if it's not the same square
-                    if (sourceSquare.row !== targetSquare.row || sourceSquare.col !== targetSquare.col) {
-                        handleMove(sourceSquare, targetSquare);
-                    }
-                }
-            });
-
-            boardElement.appendChild(squareElement);
-        });
+        boardElement.appendChild(squareElement);
     });
-};
+   
 
-const handleMove = (source, target) => {
-    const move = {
-        from: `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
-        to: `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
-        promotion: 'q' // promote to queen if applicable
-    };
 
-    // Attempt to make the move
-    const legalMove = chess.move(move);
-    if (legalMove) {
-        // Emit move to server
-        socket.emit("move", move);
-    } else {
-        alert("Invalid move!");
+
+});
+
+    if(playerRole === "b"){
+        boardElement.classList.add("flipped")
+    }else{
+        boardElement.classList.remove("flipped")
+        
     }
 
-    // Re-render the board after move attempt
-    renderBoard();
 };
 
-const getPieceUnicode = (piece) => {
-    const unicodePieces = {
-        'p': '♟', // Black Pawn
-        'r': '♜', // Black Rook
-        'n': '♞', // Black Knight
-        'b': '♝', // Black Bishop
-        'q': '♛', // Black Queen
-        'k': '♚', // Black King
-        'P': '♙', // White Pawn
-        'R': '♖', // White Rook
-        'N': '♘', // White Knight
-        'B': '♗', // White Bishop
-        'Q': '♕', // White Queen
-        'K': '♔'  // White King
-    };
-    return unicodePieces[piece.type] || "";
-};
+const handleMove = (source , target) => {
+    const move = {
+        from: `${String.fromCharCode(97+ source.col)}${8 - source.row}`,
+        to: `${String.fromCharCode(97+ target.col)}${8 - target.row}`,
+        promotion: "q"
+    }
 
-// Socket event handlers
-socket.on("playerRole", function(role) {
+    socket.emit("move",move)
+};
+    
+
+socket.on("playerRole", function(role){
     playerRole = role;
-    renderBoard();
-});
+    renderBoard()
+})
 
-socket.on("spectatorRole", function() {
+socket.on("spectatorRole", function(){
     playerRole = null;
-    renderBoard();
-});
+    renderBoard()
+})
 
-socket.on("boardState", function(fen) {
+socket.on("boardState",function(fen){
     chess.load(fen);
-    renderBoard();
-});
+    renderBoard()
+})
 
-socket.on("move", function(move) {
+
+socket.on("move",function(move){
     chess.move(move);
-    renderBoard();
-});
+    renderBoard()
+})
 
-// Initialize the board
+
 renderBoard();
